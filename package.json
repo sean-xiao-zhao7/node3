@@ -1,0 +1,24 @@
+{
+    "name": "node3",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "nodemon app.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/sean-xiao-zhao7/node3.git"
+    },
+    "author": "Sean Xiao",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/sean-xiao-zhao7/node3/issues"
+    },
+    "homepage": "https://github.com/sean-xiao-zhao7/node3#readme",
+    "dependencies": {
+        "express": "^4.17.1",
+        "nodemon": "^2.0.7"
+    }
+}
