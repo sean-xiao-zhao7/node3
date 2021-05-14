@@ -3,7 +3,6 @@ exports.getPosts = (req, res, next) => {
 };
 
 exports.addPost = (req, res, next) => {
-    console.log(req.body)
     res.status(201).json({
         message: "Add done.",
         post: {
