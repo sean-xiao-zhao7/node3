@@ -28,7 +28,7 @@ const fileFilter = (req, file, callback) => {
 
 app.use(bodyParser.json());
 app.use("/images", express.static(path.join(__dirname, "images")));
-app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("images"));
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single("image"));
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
