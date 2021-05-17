@@ -1,5 +1,7 @@
 const { validationResult } = require("express-validator");
 const Post = require("../models/post");
+const fs = require("fs");
+const path = require("path");
 
 exports.getPosts = (req, res, next) => {
     Post.find()
@@ -61,4 +63,38 @@ exports.getPostById = (req, res, next) => {
             return res.json({ post: post });
         })
         .catch((e) => next(e));
+};
+
+exports.editPostById = (req, res, next) => {
+    /* check errors */
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const error = new Error("Validation failed.");
+        error.statusCode = 422;
+        throw error;
+    }
+
+    /* update */
+    Post.findById(req.params.id)
+        .then((post) => {
+            if (!post) {
+                throw new Error({
+                    message: "No post found by id " + req.params.id,
+                    statusCode: 404,
+                });
+            }
+            post.title = req.body.title;
+            post.content = req.body.content;
+            removeImageFile(post.imageUrl);
+            post.imageUrl = req.file.path;
+            return post.save();
+        })
+        .then((post) => {
+            return res.status(200).json({ message: "Update successful.", post: post });
+        })
+        .catch((e) => next(e));
+};
+
+const removeImageFile = (filePath) => {
+    fs.unlink(path.join(__dirname, "..", filePath), (e) => e ? console.log(e) : null);
 };
