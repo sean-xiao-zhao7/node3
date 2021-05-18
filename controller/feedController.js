@@ -4,10 +4,20 @@ const fs = require("fs");
 const path = require("path");
 
 exports.getPosts = (req, res, next) => {
+    let total = 0;
+    const perPage = 2;
     Post.find()
+        .countDocuments()
+        .then((count) => {
+            total = count;
+            return Post.find()
+                .skip(((req.query.page || 1) - 1) * perPage)
+                .limit(perPage);
+        })
         .then((posts) => {
             return res.status(200).json({
                 posts: posts,
+                totalItems: total,
             });
         })
         .catch((e) => next(e));
@@ -96,5 +106,18 @@ exports.editPostById = (req, res, next) => {
 };
 
 const removeImageFile = (filePath) => {
-    fs.unlink(path.join(__dirname, "..", filePath), (e) => e ? console.log(e) : null);
+    fs.unlink(path.join(__dirname, "..", filePath), (e) => (e ? console.log(e) : null));
+};
+
+exports.deletePostById = (req, res, next) => {
+    Post.findById(req.params.id)
+        .then((post) => {
+            if (post.adder.name === "Sean") {
+                return Post.findByIdAndRemove(req.params.id, { useFindAndModify: true });
+            }
+        })
+        .then((_) => {
+            return res.status(200).json({ message: "Delete successful." });
+        })
+        .catch((e) => console.log(e));
 };
