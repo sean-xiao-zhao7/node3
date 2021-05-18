@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
 const feedRoutes = require("./routes/feed");
+const authRoutes = require("./routes/auth");
 const MONGOURI = require("./database/mongodbinfo");
 const mongoose = require("mongoose");
 const path = require("path");
@@ -36,9 +37,10 @@ app.use((req, res, next) => {
     next();
 });
 app.use("/feed", feedRoutes);
+app.use("/auth", authRoutes);
 app.use((error, req, res, next) => {
     console.log(error);
-    res.status(error.statusCode || 500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message, data: error.data });
 });
 mongoose
     .connect(MONGOURI, { useNewUrlParser: true, useUnifiedTopology: true })

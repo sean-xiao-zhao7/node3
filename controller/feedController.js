@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 const Post = require("../models/post");
+const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
 
@@ -41,17 +42,29 @@ exports.addPost = (req, res, next) => {
         title: req.body.title,
         content: req.body.content,
         imageUrl: req.file.path,
-        adder: {
-            name: "Sean",
-        },
+        adder: req.userId,
     });
     newPost
         .save()
         .then((_) => {
-            return res.status(201).json({
-                message: "Add post successful.",
-                post: newPost,
-            });
+            User.findById(req.userId)
+                .then((user) => {
+                    user.posts.push(newPost);
+                    return user.save();
+                })
+                .then((user) => {
+                    return res.status(201).json({
+                        message: "Add post successful.",
+                        post: newPost,
+                        adder: { _id: user._id, username: user.username },
+                    });
+                })
+                .catch((e) => {
+                    if (!e.statusCode) {
+                        e.statusCode = 500;
+                    }
+                    next(err);
+                });
         })
         .catch((e) => {
             if (!e.statusCode) {
@@ -112,12 +125,17 @@ const removeImageFile = (filePath) => {
 exports.deletePostById = (req, res, next) => {
     Post.findById(req.params.id)
         .then((post) => {
-            if (post.adder.name === "Sean") {
-                return Post.findByIdAndRemove(req.params.id, { useFindAndModify: true });
-            }
+            return Post.findByIdAndRemove(req.params.id, { useFindAndModify: true });
         })
-        .then((_) => {
-            return res.status(200).json({ message: "Delete successful." });
+        .then((post) => {
+            User.findById(req.userId)
+                .then((user) => {
+                    user.posts.pull(post._id);
+                    return user.save();
+                })
+                .then((_) => {
+                    return res.status(200).json({ message: "Delete successful." });
+                });
         })
         .catch((e) => console.log(e));
 };
