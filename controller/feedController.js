@@ -3,25 +3,23 @@ const Post = require("../models/post");
 const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
+const io = require("../socket");
 
-exports.getPosts = (req, res, next) => {
-    let total = 0;
+exports.getPosts = async (req, res, next) => {
     const perPage = 2;
-    Post.find()
-        .countDocuments()
-        .then((count) => {
-            total = count;
-            return Post.find()
-                .skip(((req.query.page || 1) - 1) * perPage)
-                .limit(perPage);
-        })
-        .then((posts) => {
-            return res.status(200).json({
-                posts: posts,
-                totalItems: total,
-            });
-        })
-        .catch((e) => next(e));
+    try {
+        const count = await Post.find().countDocuments();
+        const posts = await Post.find()
+            .skip(((req.query.page || 1) - 1) * perPage)
+            .limit(perPage);
+
+        return res.status(200).json({
+            posts: posts,
+            totalItems: count,
+        });
+    } catch (e) {
+        next(e);
+    }
 };
 
 exports.addPost = (req, res, next) => {
@@ -53,6 +51,10 @@ exports.addPost = (req, res, next) => {
                     return user.save();
                 })
                 .then((user) => {
+                    io.getIO().emit("posts", {
+                        action: "add",
+                        post: newPost,
+                    });
                     return res.status(201).json({
                         message: "Add post successful.",
                         post: newPost,
