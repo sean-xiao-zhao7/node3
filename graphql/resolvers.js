@@ -6,19 +6,46 @@ const jwt = require("jsonwebtoken");
 const jwtsecret = require("../database/secrets").jwtsecret;
 
 module.exports = {
-    getPosts: async function ({}, req) {
+    getPost: async function ({ id }, req) {
+        // auth check
+        if (!req.isAuth) {
+            const e = new Error("Not logged in.");
+            e.code = 401;
+            throw e;
+        }
+
+        const post = await Post.findById(id).populate("adder");
+
+        return {
+            ...post._doc,
+            _id: post._id.toString(),
+            createdAt: post.createdAt.toISOString(),
+            updatedAt: post.updatedAt.toISOString(),
+        };
+    },
+    getPosts: async function ({ page }, req) {
         try {
+            //pagination
+            const perPage = 2;
+            const currentPage = page || 1;
+
+            const totalPosts = await Post.find().countDocuments();
             const posts = await Post.find({ adder: req.userId })
                 .sort({ createdAt: -1 })
+                .skip((currentPage - 1) * perPage)
+                .limit(perPage)
                 .populate("adder");
-            return posts.map((p) => {
+            return {
+                posts: posts.map((p) => {
                     return {
                         ...p._doc,
                         id: p._id.toString(),
                         createdAt: p.createdAt.toISOString(),
                         updatedAt: p.updatedAt.toISOString(),
                     };
-                })            
+                }),
+                totalPosts: totalPosts,
+            };
         } catch (e) {
             const error = new Error(e.message);
             error.code = 500;

@@ -9,8 +9,9 @@ const graphqlSchema = require("./graphql/schema");
 const graphqlResolvers = require("./graphql/resolvers");
 const MONGOURI = require("./database/mongodbinfo");
 const mongoose = require("mongoose");
-const path = require("path");
 const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 const fileStorage = multer.diskStorage({
     destination: (req, file, callback) => {
         callback(null, "images");
@@ -51,6 +52,19 @@ app.use((error, req, res, next) => {
 });
 
 app.use(auth);
+app.put("/upload", (req, res, next) => {
+    if (!req.isAuth) {
+        throw new Error("Not logged in.");
+    }
+    if (!req.file) {
+        return res.status(200).json({ message: "No file." });
+    } else {
+        if (req.body.oldPath) {
+            removeImageFile(req.body.oldPath);
+        }
+        return res.status(200).json({ message: "Upload successful.", path: req.file.path });
+    }
+});
 app.use(
     "/graphql",
     graphqlHTTP({
@@ -77,3 +91,7 @@ mongoose
         app.listen(8080);
     })
     .catch((e) => console.log("Database connection failed."));
+
+const removeImageFile = (filePath) => {
+    fs.unlink(path.join(__dirname, "..", filePath), (e) => (e ? console.log(e) : null));
+};
