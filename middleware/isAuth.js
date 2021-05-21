@@ -2,20 +2,27 @@ const jwt = require("jsonwebtoken");
 const { jwtsecret } = require("../database/secrets");
 
 module.exports = (req, res, next) => {
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+        req.isAuth = false;
+        return next();
+    }
+
     const token = req.get("Authorization").split(" ")[1];
     let decodedToken;
     try {
         decodedToken = jwt.verify(token, jwtsecret);
     } catch (e) {
-        e.statusCode = 500;
-        throw e;
+        req.isAuth = false;
+        return next();
     }
 
     if (!decodedToken) {
-        const e = new Error("Token not valid.");
-        e.statusCode = 401;
-        throw e;
+        req.isAuth = false;
+        return next();
     }
+    
+    req.isAuth = true;
     req.userId = decodedToken.userId;
     next();
 };

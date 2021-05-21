@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const app = express();
 // const feedRoutes = require("./routes/feed");
 // const authRoutes = require("./routes/auth");
+const auth = require("./middleware/isAuth");
 const { graphqlHTTP } = require("express-graphql");
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolvers = require("./graphql/resolvers");
@@ -48,6 +49,8 @@ app.use((error, req, res, next) => {
     console.log(error);
     res.status(error.statusCode || 500).json({ message: error.message, data: error.data });
 });
+
+app.use(auth);
 app.use(
     "/graphql",
     graphqlHTTP({

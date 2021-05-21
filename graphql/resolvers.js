@@ -1,10 +1,81 @@
 const User = require("../models/user");
+const Post = require("../models/post");
 const bcrypt = require("bcryptjs");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const jwtsecret = require("../database/secrets").jwtsecret;
 
 module.exports = {
+    getPosts: async function ({}, req) {
+        try {
+            const posts = await Post.find({ adder: req.userId })
+                .sort({ createdAt: -1 })
+                .populate("adder");
+            return posts.map((p) => {
+                    return {
+                        ...p._doc,
+                        id: p._id.toString(),
+                        createdAt: p.createdAt.toISOString(),
+                        updatedAt: p.updatedAt.toISOString(),
+                    };
+                })            
+        } catch (e) {
+            const error = new Error(e.message);
+            error.code = 500;
+            throw error;
+        }
+    },
+    addPost: async function ({ addPostInputData }, req) {
+        // find existing user
+        if (!req.isAuth) {
+            const e = new Error("Not logged in.");
+            e.code = 401;
+            throw e;
+        }
+        const user = await User.findById(req.userId);
+
+        // validate inputs
+        let code;
+        const errors = [];
+        if (
+            validator.isEmpty(addPostInputData.title) ||
+            validator.isEmpty(addPostInputData.content) ||
+            validator.isEmpty(addPostInputData.imageUrl)
+        ) {
+            errors.push({
+                message: "Post info not complete.",
+            });
+            code = 422;
+        }
+        if (!user) {
+            errors.push({
+                message: "User not found.",
+            });
+            code = 401;
+        }
+        if (errors.length > 0) {
+            const error = new Error("Error.");
+            error.data = errors;
+            error.code = code;
+            throw error;
+        }
+        const newPost = new Post({
+            title: addPostInputData.title,
+            content: addPostInputData.content,
+            imageUrl: addPostInputData.imageUrl,
+            adder: user,
+        });
+        const result = await newPost.save();
+        user.posts.push(result);
+        await user.save();
+
+        return {
+            ...result._doc,
+            _id: result._id.toString(),
+            createdAt: result.createdAt.toISOString(),
+            updatedAt: result.updatedAt.toISOString(),
+        };
+    },
     login: async function ({ username, password }, req) {
         // find existing user
         const user = await User.findOne({ username: username });
