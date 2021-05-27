@@ -52,7 +52,7 @@ module.exports = {
             throw error;
         }
     },
-    addPost: async function ({ addPostInputData }, req) {
+    addPost: async function ({ postInputData }, req) {
         // find existing user
         if (!req.isAuth) {
             const e = new Error("Not logged in.");
@@ -65,9 +65,9 @@ module.exports = {
         let code;
         const errors = [];
         if (
-            validator.isEmpty(addPostInputData.title) ||
-            validator.isEmpty(addPostInputData.content) ||
-            validator.isEmpty(addPostInputData.imageUrl)
+            validator.isEmpty(postInputData.title) ||
+            validator.isEmpty(postInputData.content) ||
+            validator.isEmpty(postInputData.imageUrl)
         ) {
             errors.push({
                 message: "Post info not complete.",
@@ -87,9 +87,9 @@ module.exports = {
             throw error;
         }
         const newPost = new Post({
-            title: addPostInputData.title,
-            content: addPostInputData.content,
-            imageUrl: addPostInputData.imageUrl,
+            title: postInputData.title,
+            content: postInputData.content,
+            imageUrl: postInputData.imageUrl,
             adder: user,
         });
         const result = await newPost.save();
@@ -102,6 +102,75 @@ module.exports = {
             createdAt: result.createdAt.toISOString(),
             updatedAt: result.updatedAt.toISOString(),
         };
+    },
+    updatePost: async function ({ postInputData }, req) {
+        // find existing user
+        if (!req.isAuth) {
+            const e = new Error("Not logged in.");
+            e.code = 401;
+            throw e;
+        }
+        const user = await User.findById(req.userId);
+
+        // validate inputs
+        let code;
+        const errors = [];
+        if (
+            validator.isEmpty(postInputData.title) ||
+            validator.isEmpty(postInputData.content) ||
+            validator.isEmpty(postInputData.imageUrl)
+        ) {
+            errors.push({
+                message: "Post info not complete.",
+            });
+            code = 422;
+        }
+        if (!user) {
+            errors.push({
+                message: "User not found.",
+            });
+            code = 401;
+        }
+        if (errors.length > 0) {
+            const error = new Error("Error.");
+            error.data = errors;
+            error.code = code;
+            throw error;
+        }
+        try {
+            const newPost = await Post.findById(postInputData._id);
+            newPost.title = postInputData.title;
+            newPost.content = postInputData.content;
+            newPost.imageUrl = postInputData.imageUrl;
+            newPost.adder = user;
+            const result = await newPost.save();
+
+            return {
+                ...result._doc,
+                _id: result._id.toString(),
+                createdAt: result.createdAt.toISOString(),
+                updatedAt: result.updatedAt.toISOString(),
+            };
+        } catch (err) {
+            console.log(err);
+        }
+    },
+    deletePost: async function ({ id }, req) {
+        const post = await Post.findById(id);
+        if (!post) {
+            throw new Error("Post not found for id " + id);
+        }
+        try {
+            await post.remove();
+            return {
+                _id: id,
+            };
+        } catch (err) {
+            const error = new Error("Could not delete post " + id);
+            error.code = 500;
+            error.data = err;
+            throw error;
+        }
     },
     login: async function ({ username, password }, req) {
         // find existing user
